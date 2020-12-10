@@ -143,6 +143,7 @@ RCT_EXPORT_METHOD(__registerAsJSEventEmitter:(int)moduleId) {
 
 -(void)configurePlayerControlInfo {
 	[[NSNotificationCenter defaultCenter] removeObserver:self name:@"DeezerPlayerNotification" object:nil];
+	[[NSNotificationCenter defaultCenter] removeObserver:self name:@"SpotifyPlayerNotification" object:nil];
 	MPNowPlayingInfoCenter *playingInfoCenter = [MPNowPlayingInfoCenter defaultCenter];
 	NSMutableDictionary *songInfo = [[NSMutableDictionary alloc] init];
 	SPTPlaybackMetadata* metadata = _player.metadata;
@@ -185,67 +186,62 @@ RCT_EXPORT_METHOD(__registerAsJSEventEmitter:(int)moduleId) {
 	NSString *action = userInfo[@"action"];
 	SPTPlaybackState* state = _player.playbackState;
 	if ([action  isEqual: @"play"]) {
-		NSLog(@"SPLAY");
 		if (state.isPlaying == false){
 			[_player setIsPlaying:true callback:^(NSError* error) {
 				if(error != nil) {
-					NSLog(@"No Error");
+					NSLog(@"Error");
 				}
 				else {
-					NSLog(@"Error");
+					NSLog(@"No Error");
 				}
 			}];
 		}
 	}else if ([action  isEqual: @"pause"]){
-		NSLog(@"SPAUSE");
 		if(state.isPlaying == true){
 			[_player setIsPlaying:false callback:^(NSError* error) {
 				if(error != nil) {
-					NSLog(@"No Error");
+					NSLog(@"Error");
 				}
 				else {
-					NSLog(@"Error");
+					NSLog(@"No Error");
 				}
 			}];
 		}
 	}else if ([action  isEqual: @"next"]){
-		NSLog(@"NEXT");
 		[_player skipNext:^(NSError *error) {
 			if(error != nil) {
-				NSLog(@"No Error");
+				NSLog(@"Error");
 			}
 			else {
-				NSLog(@"Error");
+				NSLog(@"No Error");
 			}
 		}];
 	}else if ([action  isEqual: @"prev"]){
-		NSLog(@"PREVIOUS");
 		[_player skipPrevious:^(NSError *error) {
 			if(error != nil) {
-				NSLog(@"No Error");
+				NSLog(@"Error");
 			}
 			else {
-				NSLog(@"Error");
+				NSLog(@"No Error");
 			}
 		}];
 	}else if ([action  isEqual: @"pauseplay"]){
-	   NSLog(@"PAUSEPLAY");
 	   if (state.isPlaying == false){
 			[_player setIsPlaying:true callback:^(NSError* error) {
 				if(error != nil) {
-					NSLog(@"No Error");
+					NSLog(@"Error");
 				}
 				else {
-					NSLog(@"Error");
+					NSLog(@"No Error");
 				}
 			}];
 	   }else if(state.isPlaying == true){
 		   [_player setIsPlaying:false callback:^(NSError* error) {
 			   if(error != nil) {
-				   NSLog(@"No Error");
+				   NSLog(@"Error");
 			   }
 			   else {
-				   NSLog(@"Error");
+				   NSLog(@"No Error");
 			   }
 		   }];
 	   }
@@ -1348,6 +1344,8 @@ RCT_EXPORT_METHOD(sendRequest:(NSString*)endpoint method:(NSString*)method param
 			
 		case SPPlaybackNotifyBecameInactive:
 			[self sendEvent:@"inactive" args:@[[self createPlaybackEvent]]];
+			[[UIApplication sharedApplication] endReceivingRemoteControlEvents];
+			[[NSNotificationCenter defaultCenter] removeObserver:self name:@"SpotifyPlayerNotification" object:nil];
 			break;
 			
 		case SPPlaybackNotifyLostPermission:
