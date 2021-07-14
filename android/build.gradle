@@ -36,5 +36,9 @@ dependencies {
 	api(name: 'spotify-android-auth-1.0.0', ext: 'aar')
 	api(name: 'spotify-player-24-noconnect-2.20b', ext: 'aar')
 	api project(path: ':react-native-events')
+	implementation 'androidx.appcompat:appcompat:1.1.0'
+	//add this library
+	implementation 'androidx.media:media:1.1.0'
+	implementation 'com.squareup.picasso:picasso:2.4.0'
 }
 

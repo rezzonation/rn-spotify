@@ -24,6 +24,7 @@ public class AuthActivity extends Activity
 	private String xssState;
 	private AuthActivityListener listener;
 	private Completion<Void> finishCompletion;
+    public static RNSpotifyModule spotifyModule=null;
 
 	public static void performAuthFlow(Activity context, LoginOptions options, AuthActivityListener listener) {
 		// ensure no conflicting callbacks
@@ -146,5 +147,8 @@ public class AuthActivity extends Activity
 				completionTmp.resolve(null);
 			}
 		}
+		if(spotifyModule!=null)
+		spotifyModule.clearNotification();
+
 	}
 }

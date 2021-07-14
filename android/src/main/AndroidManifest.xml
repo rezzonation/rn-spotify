@@ -2,13 +2,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="com.lufinkey.react.spotify">
 
+
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+	<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
 	<application>
 		<activity
 			android:name="com.lufinkey.react.spotify.AuthActivity"
 			android:theme="@style/Theme.AppCompat.Dialog">
 		</activity>
+
+		<receiver android:name="com.lufinkey.react.spotify.NotificationActionBroadcastReceiverSpotify"/>
+		<service android:name="com.lufinkey.react.spotify.ForeGroundPlayerServiceSpotify" android:exported="false"/>
 	</application>
 
 </manifest>
