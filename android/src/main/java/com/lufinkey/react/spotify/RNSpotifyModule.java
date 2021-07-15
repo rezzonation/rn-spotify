@@ -46,6 +46,7 @@ public class RNSpotifyModule extends ReactContextBaseJavaModule implements Playe
   private boolean loggingOutPlayer;
   private boolean paused = false;
   private boolean play = false;
+  private boolean destroyPlayerNotification = false;
 
   private BroadcastReceiver networkStateReceiver;
   private Connectivity currentConnectivity = Connectivity.OFFLINE;
@@ -1512,7 +1513,9 @@ public class RNSpotifyModule extends ReactContextBaseJavaModule implements Playe
           try {
             mMetadata = player.getMetadata();
             Log.e("Player_metadata", mMetadata.toString());
-            startService(mMetadata.currentTrack.name, mMetadata.currentTrack.artistName, mMetadata.currentTrack.albumCoverWebUrl, R.drawable.ic_play_arrow_black_24dp);
+            if ( destroyPlayerNotification == false ) {
+              startService(mMetadata.currentTrack.name, mMetadata.currentTrack.artistName, mMetadata.currentTrack.albumCoverWebUrl, R.drawable.ic_play_arrow_black_24dp);
+            }
           }
           catch (Exception e){
             e.printStackTrace();
@@ -1632,12 +1635,12 @@ public class RNSpotifyModule extends ReactContextBaseJavaModule implements Playe
   }
 
   public void clearNotification() {
+    destroyPlayerNotification = true;
     try {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         notificationManager.cancelAll();
       }
       reactContext.unregisterReceiver(broadcastReceiverSpotify);
-      //player.pause();
       player.pause(mOperationCallback);
       stopService();
     }
