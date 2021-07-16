@@ -91,7 +91,6 @@ public class RNSpotifyModule extends ReactContextBaseJavaModule implements Playe
     loggingOutPlayer = false;
 
     networkStateReceiver = null;
-
     auth = null;
     authRenewalTimer = null;
     player = null;
@@ -122,7 +121,6 @@ public class RNSpotifyModule extends ReactContextBaseJavaModule implements Playe
     @Override
     public void onReceive(Context context, Intent intent) {
       String action = intent.getExtras().getString("actionname_spotify");
-
       switch (action) {
         case ForeGroundPlayerServiceSpotify.ACTION_PREVIUOS:
           player.skipToPrevious(mOperationCallback);
@@ -132,13 +130,19 @@ public class RNSpotifyModule extends ReactContextBaseJavaModule implements Playe
           if (player.getPlaybackState().isPlaying) {
             mMetadata = player.getMetadata();
             Log.e("Player_pause_metadata", mMetadata.toString());
-               startService(mMetadata.currentTrack.name,mMetadata.currentTrack.artistName,mMetadata.currentTrack.albumCoverWebUrl,R.drawable.ic_play_arrow_black_24dp);
-            		player.pause(mOperationCallback);
+            if(mMetadata != null & mMetadata.currentTrack !=null ){
+              startService(mMetadata.currentTrack.name,mMetadata.currentTrack.artistName,mMetadata.currentTrack.albumCoverWebUrl,R.drawable.ic_play_arrow_black_24dp);
+              player.pause(mOperationCallback);
+            }
           } else {
             mMetadata = player.getMetadata();
             Log.e("Player_play_metadata", mMetadata.toString());
-               startService(mMetadata.currentTrack.name,mMetadata.currentTrack.artistName,mMetadata.currentTrack.albumCoverWebUrl,R.drawable.ic_pause_black_24dp);
-            		 player.resume(mOperationCallback);
+            if(mMetadata != null & mMetadata.currentTrack !=null ){
+              startService(mMetadata.currentTrack.name,mMetadata.currentTrack.artistName,mMetadata.currentTrack.albumCoverWebUrl,R.drawable.ic_pause_black_24dp);
+              player.resume(mOperationCallback);
+            } else {
+              player.pause(mOperationCallback);
+            }
           }
           break;
         case ForeGroundPlayerServiceSpotify.ACTION_NEXT:
@@ -964,6 +968,62 @@ public class RNSpotifyModule extends ReactContextBaseJavaModule implements Playe
 
           @Override
           public void onSuccess() {
+            Config playerConfig = new Config(reactContext.getApplicationContext(), auth.getSession().accessToken, auth.getClientID());
+            SpotifyPlayer.Builder builder = new SpotifyPlayer.Builder(playerConfig);
+              // player successfully initialized
+            player = Spotify.getPlayer(builder, this, new SpotifyPlayer.InitializationObserver() {
+              @Override
+              public void onError(Throwable error) {
+                // error initializing the player
+                if (player != null) {
+                  // destroy the player
+                  Spotify.destroyPlayer(this);
+                  player = null;
+                }
+                // call init responses
+                ArrayList<Completion<Void>> initResponses = null;
+                synchronized (playerInitResponses) {
+                  initResponses = new ArrayList<>(playerInitResponses);
+                  playerInitResponses.clear();
+                }
+                for (Completion<Void> completion : initResponses) {
+                  completion.reject(new SpotifyError(Error.kSpErrorInitFailed, error.getLocalizedMessage()));
+                }
+              }
+
+              @Override
+              public void onInitialized(SpotifyPlayer newPlayer) {
+                // player successfully initialized
+                player = newPlayer;
+
+                // setup player
+                currentConnectivity = Utils.getNetworkConnectivity();
+                player.setConnectivityStatus(null, currentConnectivity);
+                player.addNotificationCallback(RNSpotifyModule.this);
+                player.addConnectionStateCallback(RNSpotifyModule.this);
+
+                // attempt to log in the player
+                loginPlayer(new Completion<Void>() {
+                  @Override
+                  public void onComplete(Void unused, SpotifyError error) {
+                    // call init responses
+                    ArrayList<Completion<Void>> initResponses = null;
+                    synchronized (playerInitResponses) {
+                      initResponses = new ArrayList<>(playerInitResponses);
+                      playerInitResponses.clear();
+                    }
+                    for (Completion<Void> completion : initResponses) {
+                      if (error == null) {
+                        completion.resolve(null);
+                      } else {
+                        completion.reject(error);
+                      }
+                    }
+                  }
+                });
+              }
+            });
+            reactContext.registerReceiver(broadcastReceiverSpotify, new IntentFilter("TRACKS_SPOTIFY"));
             promise.resolve(null);
           }
         }, spotifyURI, startIndex, (int) (startPosition * 1000));
@@ -1538,8 +1598,10 @@ public class RNSpotifyModule extends ReactContextBaseJavaModule implements Playe
         Log.e("Player_metadataChange", "-----metadataChange------");
         mMetadata = player.getMetadata();
         Log.e("Player_metadata", mMetadata.toString());
-        if(mMetadata != null ){
+        if(mMetadata != null & mMetadata.currentTrack !=null ){
           startService(mMetadata.currentTrack.name, mMetadata.currentTrack.artistName, mMetadata.currentTrack.albumCoverWebUrl, R.drawable.ic_pause_black_24dp);
+        }else {
+          player.pause(mOperationCallback);
         }
         break;
 
@@ -1633,7 +1695,7 @@ public class RNSpotifyModule extends ReactContextBaseJavaModule implements Playe
     }
 
   }
-
+  
   public void clearNotification() {
     destroyPlayerNotification = true;
     try {
